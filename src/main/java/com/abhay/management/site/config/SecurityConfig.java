@@ -43,7 +43,7 @@ public class SecurityConfig {
 	
     private final JwtAuthFilter jwtAuthFilter;
     
-    private final CorsConfigurationSource corsConfigurationSource;
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -51,7 +51,7 @@ public class SecurityConfig {
         
         // In filterChain(), add .cors() BEFORE .csrf():
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .csrf(AbstractHttpConfigurer::disable)
+        
             // Disable CSRF — we use stateless JWT, not cookies
             .csrf(AbstractHttpConfigurer::disable)
 
@@ -64,8 +64,10 @@ public class SecurityConfig {
                     // Auth endpoints are public
                     .requestMatchers("/api/auth/**").permitAll()
                     // Admin-only endpoints
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    // All other endpoints require any authenticated user
+                    .requestMatchers("/api/admin/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers("/api/reports/**").hasRole("ADMIN")
+                    // All other endpoints require any valid authenticated user
                     .anyRequest().authenticated()
             )
 

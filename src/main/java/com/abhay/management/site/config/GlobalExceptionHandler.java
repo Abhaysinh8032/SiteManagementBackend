@@ -46,9 +46,21 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    /**
-     * Catch-all for unexpected server errors — hides stack trace from clients.
-     */
+    // Business logic errors (not found, conflict, bad state)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<AuthDto.ApiResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(AuthDto.ApiResponse.error(ex.getMessage()));
+    }
+
+    // State errors (user not PENDING, unauthorized action)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<AuthDto.ApiResponse> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(AuthDto.ApiResponse.error(ex.getMessage()));
+    }
+
+    // Catch-all
     @ExceptionHandler(Exception.class)
     public ResponseEntity<AuthDto.ApiResponse> handleGenericException(Exception ex) {
         log.error("Unhandled exception", ex);

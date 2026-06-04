@@ -86,10 +86,24 @@
 			<scope>test</scope>
 		</dependency>
 		 <dependency>
-		            <groupId>org.springframework.security</groupId>
-		            <artifactId>spring-security-test</artifactId>
-		            <scope>test</scope>
-		        </dependency>
+		     <groupId>org.springframework.security</groupId>
+		     <artifactId>spring-security-test</artifactId>
+		     <scope>test</scope>
+		</dependency>
+		
+		<!-- poi gives you basic Excel (xls) -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi</artifactId>
+		    <version>5.3.0</version>
+		</dependency>
+		
+		<!-- poi-ooxml gives you XSSFWorkbook for modern xlsx format -->
+		<dependency>
+		    <groupId>org.apache.poi</groupId>
+		    <artifactId>poi-ooxml</artifactId>
+		    <version>5.3.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

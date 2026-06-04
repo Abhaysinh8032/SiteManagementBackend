@@ -32,7 +32,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = extractToken(request);
 
-        if (token != null && jwtUtil.validateToken(token)) {
+        if (token != null 
+        		&& jwtUtil.validateToken(token)
+        		) {
             String employeeId = jwtUtil.getEmployeeId(token);
             String role = jwtUtil.getRole(token);
             String userId = jwtUtil.getUserId(token);
