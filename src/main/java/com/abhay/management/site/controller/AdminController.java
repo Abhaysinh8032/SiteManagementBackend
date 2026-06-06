@@ -20,7 +20,7 @@ public class AdminController {
 
     // GET /api/admin/users — all users
     @GetMapping("/users")
-    @PreAuthorize("hasRole('ADMIN')")
+    //@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserManagementDto.UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userManagementService.getAllUsers());
     }
