@@ -23,6 +23,7 @@ public class TaskService {
     private final UserRepository       userRepository;
     private final WorkUpdateRepository workUpdateRepository;
     private final NotificationRepository notificationRepository;
+    private final SiteMemberRepository   siteMemberRepository;   // ← added
 
     // ── Create and assign task (admin only) ───────────────────────────────────
 
@@ -36,6 +37,30 @@ public class TaskService {
 
         User createdBy = userRepository.findById(createdByAdminId)
                 .orElseThrow(() -> new IllegalArgumentException("Admin not found."));
+
+        // ── AUTO-ASSIGN: add worker to site if not already a member ──────────
+        // This means admin only needs to create a task — no separate
+        // "Manage Members" step required. Worker automatically sees
+        // the site on their next login.
+        if (!siteMemberRepository.existsBySiteIdAndUserId(
+                site.getId(), assignedTo.getId())) {
+
+            SiteMember membership = SiteMember.builder()
+                    .site(site)
+                    .user(assignedTo)
+                    .assignedBy(createdBy)
+                    .build();
+            siteMemberRepository.save(membership);
+
+            log.info("Auto-assigned {} to site '{}' via task creation by {}",
+                    assignedTo.getEmployeeId(),
+                    site.getName(),
+                    createdBy.getEmployeeId());
+        } else {
+            log.debug("{} is already a member of site '{}'",
+                    assignedTo.getEmployeeId(), site.getName());
+        }
+        // ── END AUTO-ASSIGN ──────────────────────────────────────────────────
 
         Task task = Task.builder()
                 .site(site)
