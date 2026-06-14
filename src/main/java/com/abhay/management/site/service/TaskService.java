@@ -3,6 +3,7 @@ package com.abhay.management.site.service;
 import com.abhay.management.site.dto.TaskDto;
 import com.abhay.management.site.entity.*;
 import com.abhay.management.site.enums.TaskStatus;
+import com.abhay.management.site.enums.UserRole;
 import com.abhay.management.site.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,16 @@ public class TaskService {
     private final NotificationRepository notificationRepository;
     private final SiteMemberRepository   siteMemberRepository;   // ← added
 
-    // ── Create and assign task (admin only) ───────────────────────────────────
+    // Statuses only ADMIN can set
+    private static final Set<TaskStatus> ADMIN_ONLY_STATUSES =
+            Set.of(TaskStatus.COMPLETED);
+
+    // Statuses a WORKER can set on their own task
+    private static final Set<TaskStatus> WORKER_ALLOWED_STATUSES =
+            Set.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS,
+                   TaskStatus.ON_HOLD, TaskStatus.REVIEW_REQUESTED);
+
+    // ── Create task + auto-assign worker to site ──────────────────────────────
 
     @Transactional
     public TaskDto.TaskResponse createTask(TaskDto.CreateTaskRequest request, UUID createdByAdminId) {
@@ -115,16 +126,60 @@ public class TaskService {
     @Transactional
     public TaskDto.TaskResponse updateTaskStatus(UUID taskId, TaskStatus newStatus, UUID requestingUserId) {
         Task task = findTaskById(taskId);
+        User requestingUser = userRepository.findById(requestingUserId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
-        // Worker can only update status of tasks assigned to them
-        if (!task.getAssignedTo().getId().equals(requestingUserId) &&
-                !task.getCreatedBy().getId().equals(requestingUserId)) {
-            throw new IllegalStateException("You are not authorized to update this task.");
+        boolean isAdmin  = requestingUser.getRole() == UserRole.ADMIN;
+        boolean isAssignedWorker =
+                task.getAssignedTo().getId().equals(requestingUserId);
+        boolean isCreator = task.getCreatedBy().getId().equals(requestingUserId);
+
+        // Must be admin or the assigned worker
+        if (!isAdmin && !isAssignedWorker) {
+            throw new IllegalStateException(
+                    "You are not authorized to update this task.");
+        }
+
+        // Worker cannot mark as COMPLETED — only admin can
+        if (!isAdmin && ADMIN_ONLY_STATUSES.contains(newStatus)) {
+            throw new IllegalStateException(
+                    "Only an admin can mark a task as Completed. "
+                  + "Please use 'Review Requested' to submit for approval.");
+        }
+
+        // Worker can only use allowed statuses
+        if (!isAdmin && !WORKER_ALLOWED_STATUSES.contains(newStatus)) {
+            throw new IllegalStateException(
+                    "You are not allowed to set this status.");
         }
 
         task.setStatus(newStatus);
         task = taskRepository.save(task);
-        log.info("Task '{}' status updated to {} by user {}", task.getTitle(), newStatus, requestingUserId);
+        log.info("Task '{}' status → {} by {} [{}]",
+                task.getTitle(), newStatus,
+                requestingUser.getEmployeeId(), requestingUser.getRole());
+        return toResponse(task);
+    }
+
+    // ── Update task description — admin only ──────────────────────────────────
+
+    @Transactional
+    public TaskDto.TaskResponse updateDescription(
+            UUID taskId, TaskDto.UpdateDescriptionRequest request, UUID adminId) {
+
+        Task task = findTaskById(taskId);
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new IllegalStateException(
+                    "Only admins can update task descriptions.");
+        }
+
+        task.setDescription(request.getDescription());
+        task = taskRepository.save(task);
+        log.info("Task '{}' description updated by {}",
+                task.getTitle(), admin.getEmployeeId());
         return toResponse(task);
     }
 

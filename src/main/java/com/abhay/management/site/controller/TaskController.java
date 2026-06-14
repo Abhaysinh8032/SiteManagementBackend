@@ -82,6 +82,17 @@ public class TaskController {
                 id, request.getStatus(), UUID.fromString(principal.getUserId()));
         return ResponseEntity.ok(task);
     }
+	
+	    // PATCH /api/tasks/{id}/description — admin only
+    @PatchMapping("/{id}/description")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TaskDto.TaskResponse> updateDescription(
+            @PathVariable UUID id,
+            @RequestBody TaskDto.UpdateDescriptionRequest request,
+            @AuthenticationPrincipal EmployeePrincipal principal) {
+        return ResponseEntity.ok(taskService.updateDescription(
+                id, request, UUID.fromString(principal.getUserId())));
+    }
 
     // ── POST /api/tasks/{id}/updates — post a work update ─────────────────────
     @PostMapping("/{id}/updates")

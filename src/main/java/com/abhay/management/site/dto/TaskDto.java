@@ -41,6 +41,12 @@ public class TaskDto {
         private TaskStatus status;
     }
 
+    // NEW — admin can update description
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class UpdateDescriptionRequest {
+        @Size(max = 2000)
+        private String description;
+    }
     // ── Task response ─────────────────────────────────────────────────────────
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class TaskResponse {
